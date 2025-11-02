@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/face.hpp>
 
 struct framebuffer_info
 {
@@ -53,6 +54,12 @@ void sigint_handler(int)
 
 int main ( int argc, const char *argv[] )
 {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <model_path>" << std::endl;
+        return 1;
+    }
+    std::string model_path = argv[1];
+    std::string face_cascade_path = "./haarcascades/haarcascade_frontalface_default.xml";
     std::signal(SIGINT, sigint_handler);
 
     int fd_fb = open("/dev/fb0", O_RDWR);
@@ -76,12 +83,6 @@ int main ( int argc, const char *argv[] )
         exit(1); // Exit if mmap failed
     }
     fb_ptr_global = fb_ptr;
-
-    std::cout << "FB mapped: res=" << fb_info.xres << "x" << fb_info.yres
-              << "  virtual=" << fb_info.xres_virtual << "x" << fb_info.yres_virtual
-              << "  bpp=" << fb_info.bits_per_pixel
-              << "  line_length=" << fb_info.line_length
-              << "  smem_len=" << fb_info.smem_len << std::endl;
 
     cv::VideoCapture camera(2);
     if( !camera.isOpened() )
@@ -107,16 +108,15 @@ int main ( int argc, const char *argv[] )
     // === 載入 LBPH 模型 ===
     cv::Ptr<cv::face::LBPHFaceRecognizer> recognizer = cv::face::LBPHFaceRecognizer::create();
     try {
-        recognizer->read("lbph_model.yml");
-        std::cout << "LBPH model loaded successfully!" << std::endl;
+        recognizer->read(model_path);
     } catch (...) {
         std::cerr << "Warning: Could not load LBPH model. Recognition will be skipped." << std::endl;
     }
 
-    // 標籤對應（視你的模型訓練結果調整）
+    // 標籤對應
     std::map<int, std::string> label_names = {
-        {0, "王韋程"},
-        {1, "許承"},
+        {0, "Shark"},
+        {1, "Wilson"},
     };
 
     // 目標 framebuffer 的顯示大小 (visible)
@@ -142,7 +142,7 @@ int main ( int argc, const char *argv[] )
         cv::equalizeHist(gray, gray);
 
         cv::Mat small_gray;
-        const double small_scale = 2.0;
+        const double small_scale = 1.5;
         cv::resize(gray, small_gray, cv::Size(), 1.0 / small_scale, 1.0 / small_scale);
 
         std::vector<cv::Rect> faces;
@@ -160,6 +160,7 @@ int main ( int argc, const char *argv[] )
 
             // 進行辨識
             cv::Mat faceROI = gray(face);
+            cv::resize(faceROI, faceROI, cv::Size(100, 100));
             int label = -1;
             double confidence = 0.0;
             if (!recognizer.empty()) {
@@ -167,14 +168,14 @@ int main ( int argc, const char *argv[] )
             }
 
             std::string text;
-            if (label >= 0 && confidence < 80.0) { // 信心值越低越準確
-                text = label_names[label] + " (" + cv::format("%.1f", confidence) + ")";
+            if (label >= 0 && confidence < 90.0) { // 信心值越低越準確
+                text = label_names[label];
             } else {
                 text = "Unknown";
             }
 
-            cv::putText(frame, text, cv::Point(face.x, face.y - 10),
-                        cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+            cv::putText(frame, "confidence: " + std::to_string(confidence), cv::Point(10, 10),
+                        cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 2);
         }
 
         double scale_x = (double)fb_width / (double)frame.cols;
