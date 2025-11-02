@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.5)
+project( lbph_test )
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( lbph_test lbph_test.cpp )
+target_link_libraries( lbph_test ${OpenCV_LIBS} )

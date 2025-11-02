@@ -1,0 +1,45 @@
+# === VS Code ===
+**/.vscode/
+*.code-workspace
+
+# === Build / Binary Files ===
+*.tar
+*.zip
+*.tar.gz
+**/build/
+**/bin/
+**/obj/
+**/out/
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.so
+*.dll
+*.dylib
+*.elf
+*.bin
+
+# === Image Files ===
+*.jpg
+*.jpeg
+*.bmp
+
+# === Logs and temporary files ===
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# === CMake build directories ===
+**/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# === Others ===
+*.bak
+*.old
