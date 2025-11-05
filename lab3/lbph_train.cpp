@@ -7,11 +7,18 @@ namespace fs = std::filesystem;
 using namespace cv;
 using namespace std;
 
-int main() {
-    string train_path = "../data";
-    string face_cascade_path = "/home/wilsonw/opencv/opencv-4.x/data/haarcascades/haarcascade_frontalface_default.xml";
-    string face_img_path = "../face";
+// 標籤對應
+std::map<std::string, int> label_names = {
+    {"Shark", 0},
+    {"Wilson", 1},
+};
 
+string train_path = "./data";
+string face_cascade_path = "./haarcascades/haarcascade_frontalface_default.xml";
+string face_img_path = "./face";
+string model_name = "lbph_model_class.yml";
+
+int main() {
     vector<Mat> face_list;
     vector<int> class_list;
 
@@ -25,11 +32,12 @@ int main() {
     }
     fs::create_directory(face_img_path);
 
-    int idx = 0;
     for (const auto& person_dir : fs::directory_iterator(train_path)) {
         if (!person_dir.is_directory()) continue;
         string person = person_dir.path().filename().string();
         cout << "Processing person: " << person << endl;
+
+        int idx = label_names[person];
 
         for (const auto& img_file : fs::directory_iterator(person_dir.path())) {
             Mat img = imread(img_file.path().string(), IMREAD_GRAYSCALE);
@@ -53,7 +61,6 @@ int main() {
                 num++;
             }
         }
-        idx++;
     }
 
     // 建立 LBPH 臉部辨識器
@@ -61,8 +68,7 @@ int main() {
     face_recognizer->train(face_list, class_list);
 
     // 儲存模型
-    string model_name = "lbph_model_class.yml";
-    face_recognizer->save("../" + model_name);
+    face_recognizer->save("./" + model_name);
     cout << "Training complete. Model saved to " << model_name << endl;
 
     return 0;

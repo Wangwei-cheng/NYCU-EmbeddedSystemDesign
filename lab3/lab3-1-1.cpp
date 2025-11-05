@@ -51,8 +51,19 @@ void sigint_handler(int)
     cleanup_and_exit(0);
 }
 
+std::string face_cascade_path = "./haarcascades/haarcascade_frontalface_default.xml";
+int cam_width = 640;
+int cam_height = 480;
+float cam_fps = 10;
+
 int main ( int argc, const char *argv[] )
 {
+    if (argc >= 4) {
+        cam_width = atoi(argv[1]);
+        cam_height = atoi(argv[2]);
+        cam_fps = atoi(argv[3]);
+    }
+
     std::signal(SIGINT, sigint_handler);
 
     int fd_fb = open("/dev/fb0", O_RDWR);
@@ -77,28 +88,18 @@ int main ( int argc, const char *argv[] )
     }
     fb_ptr_global = fb_ptr;
 
-    std::cout << "FB mapped: res=" << fb_info.xres << "x" << fb_info.yres
-              << "  virtual=" << fb_info.xres_virtual << "x" << fb_info.yres_virtual
-              << "  bpp=" << fb_info.bits_per_pixel
-              << "  line_length=" << fb_info.line_length
-              << "  smem_len=" << fb_info.smem_len << std::endl;
-
     cv::VideoCapture camera(2);
     if( !camera.isOpened() )
     {
         std::cerr << "Could not open video device." << std::endl;
         cleanup_and_exit(1);
     }
-
-    // 驗證 bpp 是否為16
-    if (fb_info.bits_per_pixel != 16) {
-        std::cerr << "Error: expected 16 bpp, got " << fb_info.bits_per_pixel << std::endl;
-        cleanup_and_exit(1);
-    }
+    camera.set(cv::CAP_PROP_FRAME_WIDTH, cam_width);
+    camera.set(cv::CAP_PROP_FRAME_HEIGHT, cam_height);
+    camera.set(cv::CAP_PROP_FPS, cam_fps);
 
     // 載入 Haar Cascade 模型
     cv::CascadeClassifier face_cascade;
-    std::string face_cascade_path = "./haarcascades/haarcascade_frontalface_default.xml";
     if (!face_cascade.load(face_cascade_path)) {
         std::cerr << "Error: Cannot load Haar cascade classifier." << std::endl;
         cleanup_and_exit(1);
@@ -114,7 +115,6 @@ int main ( int argc, const char *argv[] )
 
     while ( true )
     {
-        camera.grab();
         camera >> frame;
          if (frame.empty()) {
             std::cerr << "Error:No Image , capture failed" << std::endl;
@@ -128,20 +128,25 @@ int main ( int argc, const char *argv[] )
 
         cv::Mat small_gray;
         const double small_scale = 2.0;
-        cv::resize(gray, small_gray, cv::Size(), 1.0 / small_scale, 1.0 / small_scale);
-
-        std::vector<cv::Rect> faces;
-        face_cascade.detectMultiScale(
-            small_gray, faces,
-            1.1, 5, 0 | cv::CASCADE_SCALE_IMAGE, cv::Size(30, 30)
+        cv::resize(
+            gray, small_gray, 
+            cv::Size(), 1.0 / small_scale, 1.0 / small_scale
         );
 
-        for (auto &f : faces) {
-            f.x = cvRound(f.x * small_scale);
-            f.y = cvRound(f.y * small_scale);
-            f.width = cvRound(f.width * small_scale);
-            f.height = cvRound(f.height * small_scale);
-            cv::rectangle(frame, f, cv::Scalar(0, 255, 0), 2);
+        std::vector<cv::Rect> faces;
+        cv::Size minSize(gray.cols / 20, gray.rows / 20);
+        cv::Size maxSize(gray.cols / 2, gray.rows / 2);
+        face_cascade.detectMultiScale(
+            small_gray, faces,
+            1.1, 6, 0, minSize, maxSize
+        );
+
+        for (auto &face : faces) {
+            face.x = cvRound(face.x * small_scale);
+            face.y = cvRound(face.y * small_scale);
+            face.width = cvRound(face.width * small_scale);
+            face.height = cvRound(face.height * small_scale);
+            cv::rectangle(frame, face, cv::Scalar(0, 255, 0), 2);
         }
 
         double scale_x = (double)fb_width / (double)frame.cols;
@@ -174,9 +179,12 @@ int main ( int argc, const char *argv[] )
 
         for (int y = 0; y < fb_height; ++y) {
             uint8_t *dst_row = fb_ptr + (size_t)y * fb_line_len;
+            std::memset(dst_row, 0, fb_line_len);   // 清除整列 (包含 padding) 以避免殘留像素
             const uint8_t *src_row = converted_image.ptr<uint8_t>(y);
             std::memcpy(dst_row, src_row, row_bytes);
         }
+
+        usleep(1000);
     }
     
     camera.release();

@@ -1,4 +1,4 @@
-arm-linux-gnueabihf-g++ -std=gnu++11 lab3-1-1.cpp -o lab3-1-1 \
+arm-linux-gnueabihf-g++ -std=gnu++11 lab3-1.cpp -o lab3-1 \
 -I /opt/EmbedSky/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/include/ \
 -I /usr/local/arm-opencv/install/include/ -L /usr/local/arm-opencv/install/lib/ \
 -Wl,-rpath-link=/opt/EmbedSky/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/ \
@@ -7,14 +7,8 @@ arm-linux-gnueabihf-g++ -std=gnu++11 lab3-1-1.cpp -o lab3-1-1 \
 -Wl,-rpath-link=/opt/EmbedSky/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/qt5.5/rootfs_imx6q_V3_qt5.5_env/usr/lib/ \
 -lpthread -lopencv_world
 
-cp lab3-1 /media/wilsonw/BDEB-D462
-cp /home/wilsonw/workspace/Master/114Fall/NYCU-EmbeddedSystemDesign/lab3/lab3-1-1 /media/wilsonw/BDEB-D462
+cp lab3-1-1 /media/vboxuser/BDEB-D462
 
-LD_LIBRARY_PATH=. ./lab3-1 ./lbph_model_all.yml 1280 960 7.5
-LD_LIBRARY_PATH=. ./lab3-1-1 1280 960 7.5
-LD_LIBRARY_PATH=. ./lab2-2 1280 960 7.5
-LD_LIBRARY_PATH=. ./helmet_detector test0.png
+LD_LIBRARY_PATH=. ./lab3-1-1
 
-g++ -std=c++17 lab3-1-pc.cpp -o lab3-1-pc `pkg-config --cflags --libs opencv4`
-
-cd /run/media/mmcblk1p1
+g++ -std=c++17 lbph_train.cpp -o lbph_train `pkg-config --cflags --libs opencv4`

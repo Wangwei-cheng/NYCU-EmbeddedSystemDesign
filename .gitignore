@@ -6,6 +6,7 @@
 *.tar
 *.zip
 *.tar.gz
+*.tar.bz2
 **/build/
 **/bin/
 **/obj/
@@ -26,6 +27,7 @@
 *.jpeg
 *.bmp
 *.JPG
+*.JPEG
 
 # === Logs and temporary files ===
 *.log
